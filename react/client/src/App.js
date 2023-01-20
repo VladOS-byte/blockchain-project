@@ -252,6 +252,10 @@ class App extends Component {
         return hex;
     }
 
+    getColor(item) {
+        return item["voted"] === "0" ? "inherit" : ((item["for"] >= 50 ? "lightgreen" : (item["gain"] >= 50 ? "lightpink" : "lightgrey")))
+    }
+
     render() {
         const {
             web3, accounts, chainid, f, g,
@@ -278,7 +282,7 @@ class App extends Component {
             props = []
             for (var i = 0; i < proposals_keys.length; i++) {
                 let key = parseInt(proposals_keys[i])
-                props[i] = {"key": key, "data": proposals_data[i], "voted": proposals_voted[i], "for": f[i], "gain": g[i]}
+                props[i] = {"key": key, "data": proposals_data[i], "voted": proposals_voted[i], "for": parseInt(f[i]), "gain": parseInt(g[i])}
             }
         }
 
@@ -297,14 +301,14 @@ class App extends Component {
             </div>
             <div className="prop-body">
                 {props.map((item, index) => 
-                    <div key={index} className="proposal">
+                    <div key={index} className="proposal" style={{background: this.getColor(item)}}>
                         <p className="proposal-text">{item["key"] + " " + this.hex2str(item["data"])}</p>
-                        {item["voted"] || item["for"] >= 50 || item["gain"] >= 50 ? <label className="proposal-button">({item["for"]})</label> : <button className="proposal-button" onClick={(e) => {
+                        {item["voted"] !== "0" || item["for"] >= 50 || item["gain"] >= 50 ? <label className="proposal-button">({item["for"]})</label> : <button className="proposal-button" onClick={(e) => {
                             console.log(index)
                             console.log(item["key"])
                             this.accept(e, item["key"])
                         }}>Accept</button>}
-                        {item["voted"] || item["for"] >= 50 || item["gain"] >= 50 ? <label className="proposal-button">({item["gain"]})</label> : <button className="proposal-button" onClick={(e) => {
+                        {item["voted"] !== "0" || item["for"] >= 50 || item["gain"] >= 50 ? <label className="proposal-button">({item["gain"]})</label> : <button className="proposal-button" onClick={(e) => {
                             console.log(index)
                             console.log(item["key"])
                             this.reject(e, item["key"])

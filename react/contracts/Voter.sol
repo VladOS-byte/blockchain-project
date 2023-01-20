@@ -17,7 +17,10 @@ contract Voter {
         string data;
         uint256 ttl;
         bool discarded;
-        Voice[] voices;
+        address[] voices_idx;
+        mapping(address => Voice) voices;
+        uint256 sumFor;
+        uint256 sumGain;
     }
 
     struct Voice {
@@ -70,22 +73,30 @@ contract Voter {
 
         require(proposal.ttl > 0, "No such proposal.");
 
-        for (uint j = 0; j < proposal.voices.length; j++) {
-            require(proposal.voices[j].user != msg.sender, "User have been already voted.");
+        if (_isFor) {
+            proposal.sumFor += _amount;
+        } else {
+            proposal.sumGain += _amount;
         }
 
-        proposal.voices.push(Voice(msg.sender, _amount, _isFor));
+        require(proposal.voices[msg.sender].user != msg.sender, "User have been already voted.");
 
-        uint256 summaryFor = getVotesForAmount(_key);
-        uint256 summaryGain = getVotesGainAmount(_key);
+        proposal.voices_idx.push(msg.sender);
+        proposal.voices[msg.sender] = Voice(msg.sender, _amount, _isFor);
 
         uint256 t = token.totalSupply();
-        if (2 * summaryFor > t) {
-            proposal.discarded = true;
-            // emit Receive(proposal.data);
-        } else if (2 * summaryGain > t) {
-            proposal.discarded = true;
-            // emit Gained(proposal.data);
+
+        if (2 * proposal.sumFor > t || 2 * proposal.sumGain > t) {
+            proposal.sumFor = getVotesForAmount(_key);
+            proposal.sumGain = getVotesGainAmount(_key);
+            
+            if (2 * proposal.sumFor > t) {
+                proposal.discarded = true;
+                // emit Receive(proposal.data);
+            } else if (2 * proposal.sumGain > t) {
+                proposal.discarded = true;
+                // emit Gained(proposal.data);
+            }
         }
     }
 
@@ -175,10 +186,10 @@ contract Voter {
     {
         uint256 summary = 0;
 
-        Proposal memory proposal = proposals[_key];
-        if (!proposal.discarded && proposal.ttl > block.timestamp) {
-            for (uint j = 0; j < proposal.voices.length; j++) {
-                Voice memory v = proposal.voices[j];
+        Proposal storage proposal = proposals[_key];
+        // if (!proposal.discarded && proposal.ttl > block.timestamp) {
+            for (uint j = 0; j < proposal.voices_idx.length; j++) {
+                Voice memory v = proposal.voices[proposal.voices_idx[j]];
 
                 uint256 a = v.amount;
                 uint256 b = token.balanceOf(v.user);
@@ -190,7 +201,7 @@ contract Voter {
                     summary += a;
                 }
             }
-        }
+        // }
 
         return summary;
     }
@@ -201,36 +212,38 @@ contract Voter {
     function getProposalsF(address from) 
         public  
         view
-        returns (uint256[] memory, string[] memory, bool[] memory) 
+        returns (uint256[] memory, string[] memory, uint[] memory) 
     {
         uint256[] memory tmp = new uint256[](propIndexes.length);
         uint i = 0;
         uint len = 0;
 
         while (i < propIndexes.length) {
-            Proposal memory proposal = proposals[propIndexes[i]];
-            if (!proposal.discarded && proposal.ttl > block.timestamp) {
+            Proposal storage proposal = proposals[propIndexes[i]];
+            // if (!proposal.discarded && proposal.ttl > block.timestamp) {
                 tmp[len] = propIndexes[i];
                 len++;
-            }
+            // }
             i++;
         }
 
         uint256[] memory keys = new uint256[](len);
         string[] memory datas = new string[](len);
-        bool[] memory voteds = new bool[](len);
+        uint[] memory voteds = new uint[](len);
 
         for (i = 0; i < len; i++) {
             Proposal storage proposal = proposals[tmp[i]];
             keys[i] = tmp[i];
             datas[i] = proposal.data;
 
-            bool voted = false;
-            for (uint j = 0; j < proposal.voices.length; j++) {
-                if (proposal.voices[j].user == from) {
-                    voted = true;
+            uint voted = 0;
+            if (!proposal.discarded && proposal.ttl > block.timestamp) {
+                if (proposal.voices[from].user == from) {
+                    voted = 2;
                     break;
                 }
+            } else {
+                voted = 1;
             }
 
             voteds[i] = voted;

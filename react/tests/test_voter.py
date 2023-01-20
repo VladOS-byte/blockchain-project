@@ -36,7 +36,7 @@ def test_propose():
     t = Token.deploy("ICE Token", "ICE", {'from': accounts[0]})
     v = Voter.deploy(t, {'from': accounts[0]})
     v.propose("1", {'from': accounts[0]})
-    assert ((1,), ("1",), (False,)) == v.getProposalsF(accounts[0])
+    assert ((1,), ("1",), (0,)) == v.getProposalsF(accounts[0])
 
 def test_proposes():
     t = Token.deploy("ICE Token", "ICE", {'from': accounts[0]})
@@ -44,7 +44,7 @@ def test_proposes():
     v.propose("1", {'from': accounts[0]})
     v.propose("2", {'from': accounts[0]})
     v.propose("3", {'from': accounts[0]})
-    assert ((1, 2, 3), ("1", "2", "3"), (False, False, False)) == v.getProposalsF(accounts[0])
+    assert ((1, 2, 3), ("1", "2", "3"), (0, 0, 0)) == v.getProposalsF(accounts[0])
 
 def test_much_propose():
     t = Token.deploy("ICE Token", "ICE", {'from': accounts[0]})
@@ -55,7 +55,7 @@ def test_much_propose():
     
     v.propose("4", {'from': accounts[0]})
 
-    assert ((1, 2, 3, 4), ("1", "2", "3", "4"), (False, False, False, False)) == v.getProposalsF(accounts[0])
+    assert ((1, 2, 3, 4), ("1", "2", "3", "4"), (0, 0, 0, 0)) == v.getProposalsF(accounts[0])
 
 def test_propose_after_vote():
     t = Token.deploy("ICE Token", "ICE", {'from': accounts[0]})
@@ -68,7 +68,7 @@ def test_propose_after_vote():
 
     v.propose("4", {'from': accounts[0]})
 
-    assert ((2, 3, 4), ("2", "3", "4"), (False, False, False)) == v.getProposalsF(accounts[0])
+    assert ((1, 2, 3, 4), ("1", "2", "3", "4"), (1, 0, 0, 0)) == v.getProposalsF(accounts[0])
 
 def test_vote_for_amount():
     t = Token.deploy("ICE Token", "ICE", {'from': accounts[0]})
@@ -81,7 +81,7 @@ def test_vote_for_amount():
 
     v.vote(1, True, {'from': accounts[1]})
     # proposal received
-    assert v.getVotesForAmount(1) == 0
+    assert v.getVotesForAmount(1) == 100
 
 def test_vote_already_gained():
     t = Token.deploy("ICE Token", "ICE", {'from': accounts[0]})
@@ -94,7 +94,7 @@ def test_vote_already_gained():
 
     v.vote(1, False, {'from': accounts[1]})
     # proposal gained
-    assert v.getVotesGainAmount(1) == 0
+    assert v.getVotesGainAmount(1) == 100
     t.transfer(accounts[2], 35, {'from': accounts[1]})
     with pytest.raises(Exception) as _ :
         v.vote(1, False, {'from': accounts[1]})
@@ -109,7 +109,7 @@ def test_vote_too_much_amount():
     assert v.getVotesGainAmount(1) == 35
 
     v.vote(1, False, {'from': accounts[1]})
-    assert v.getVotesGainAmount(1) == 0
+    assert v.getVotesGainAmount(1) == 100
 
 def test_vote_and_transfer():
     t = Token.deploy("ICE Token", "ICE", {'from': accounts[0]})
